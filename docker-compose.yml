@@ -1,0 +1,50 @@
+services:
+    webserver:
+        image: nginx:1.25-alpine
+        container_name: nord-webserver
+        restart: unless-stopped
+        volumes:
+            -   ./:/var/www
+            -   ./.docker/nginx/conf.d/:/etc/nginx/conf.d/
+            -   ./storage/docker/logs/nginx/:/var/log/nginx/
+        ports:
+            - "80:80"
+        networks:
+            -   nord-webserver-network
+
+    app:
+        build:
+            context: .
+            dockerfile: ./.docker/app/Dockerfile
+        container_name: nord-app
+        restart: unless-stopped
+        user: ${UID}:${GID}
+        volumes:
+            - ./:/var/www/
+            - ./.docker/app/php.ini:/usr/local/etc/php/conf.d/php.ini
+        depends_on:
+            - db
+        networks:
+            -   nord-webserver-network
+            -   nord-db-network
+
+    db:
+        image: mysql:8.0
+        container_name: nord-db
+        restart: unless-stopped
+        ports:
+            - "3306:3306"
+        volumes:
+            - ./storage/docker/db:/var/lib/mysql
+        environment:
+            - MYSQL_DATABASE=${DB_DATABASE}
+            - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+        networks:
+            -   nord-db-network
+            
+networks:
+    nord-db-network:
+    nord-webserver-network:
+
+
+
